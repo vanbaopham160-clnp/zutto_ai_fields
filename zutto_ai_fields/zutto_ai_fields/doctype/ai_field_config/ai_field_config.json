@@ -1,0 +1,169 @@
+{
+ "actions": [],
+ "allow_copy": 1,
+ "allow_email": 1,
+ "allow_guest": 0,
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:target_doctype",
+ "beta": 0,
+ "creation": "2024-01-01 00:00:00.000000",
+ "custom": 0,
+ "docstatus": 0,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "target_doctype",
+  "target_field",
+  "section_break_4",
+  "prompt_template",
+  "system_prompt",
+  "placeholder_help",
+  "section_break_8",
+  "override_provider",
+  "provider",
+  "model",
+  "section_break_12",
+  "preview",
+  "test_generation"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "target_doctype",
+   "fieldtype": "Link",
+   "label": "Target DocType",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_field",
+   "fieldtype": "Data",
+   "label": "Target Field",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Prompt Configuration"
+  },
+  {
+   "description": "Use {{field_name}} placeholders. Example: \"Write a description for {{item_name}} with features: {{features}}\"",
+   "fieldname": "prompt_template",
+   "fieldtype": "Code",
+   "label": "Prompt Template",
+   "options": "Text",
+   "reqd": 1
+  },
+  {
+   "description": "Optional system instructions for the AI",
+   "fieldname": "system_prompt",
+   "fieldtype": "Code",
+   "label": "System Prompt",
+   "options": "Text"
+  },
+  {
+   "depends_on": "eval:doc.prompt_template",
+   "fieldname": "placeholder_help",
+   "fieldtype": "HTML",
+   "label": "Placeholder Help"
+  },
+  {
+   "fieldname": "section_break_8",
+   "fieldtype": "Section Break",
+   "label": "Provider Override"
+  },
+  {
+   "default": "0",
+   "description": "Use different provider than global default",
+   "fieldname": "override_provider",
+   "fieldtype": "Check",
+   "label": "Override Provider"
+  },
+  {
+   "depends_on": "eval:doc.override_provider",
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "label": "Provider",
+   "options": "openai\ngemini\nollama"
+  },
+  {
+   "depends_on": "eval:doc.override_provider",
+   "description": "Optional model override",
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "section_break_12",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.prompt_template",
+   "fieldname": "preview",
+   "fieldtype": "HTML",
+   "label": "Preview"
+  },
+  {
+   "depends_on": "eval:doc.enabled",
+   "fieldname": "test_generation",
+   "fieldtype": "Button",
+   "label": "Test Generation"
+  }
+ ],
+ "grid_page_length": 50,
+ "hide_toolbar": 0,
+ "in_create": 0,
+ "is_published_field": "",
+ "istable": 0,
+ "max_attachments": 0,
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Zutto AI Fields",
+ "name": "AI Field Config",
+ "name_case": "",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "AI Field User",
+   "share": 0,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "read_only": 0,
+ "read_only_depends_on_fields": [],
+ "show_preview_popup": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 0,
+ "track_views": 0
+}

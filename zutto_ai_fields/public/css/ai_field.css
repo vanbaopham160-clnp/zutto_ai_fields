@@ -1,0 +1,86 @@
+/* AI Field Button Styles */
+.ai-generation-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.ai-generation-btn:hover {
+    background: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
+    border-color: #9ca3af;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ai-generation-btn:active {
+    background: linear-gradient(to bottom, #e5e7eb, #d1d5db);
+    transform: translateY(1px);
+}
+
+.ai-generation-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ai-generation-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner-border-sm {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .ai-generation-btn {
+    background: linear-gradient(to bottom, #374151, #4b5563);
+    border-color: #6b7280;
+    color: #f9fafb;
+}
+
+[data-theme="dark"] .ai-generation-btn:hover {
+    background: linear-gradient(to bottom, #4b5563, #6b7280);
+    border-color: #9ca3af;
+}
+
+/* Frappe form integration */
+.form-layout .ai-generation-btn {
+    margin-top: 8px;
+}
+
+/* Ensure button aligns properly in different field types */
+.control-input .ai-generation-btn,
+.control-textarea .ai-generation-btn,
+.control-select .ai-generation-btn {
+    margin-top: 6px;
+}
+
+/* Success and error indicators */
+.frappe-control .ai-generation-success {
+    border-color: #10b981 !important;
+}
+
+.frappe-control .ai-generation-error {
+    border-color: #ef4444 !important;
+}
