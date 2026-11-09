@@ -129,3 +129,35 @@ As a System Manager, I want to create and manage multiple AI provider records (`
 - **NFR-001 (Zero Secret Leakage)**: API keys in `Zutto AI Provider` must be `Password` fieldtype and never serialized in client responses or logs.
 - **NFR-002 (Role Scoping)**: Only `System Manager` may create, edit, or test `Zutto AI Provider` records.
 - **NFR-003 (Custom Proxy Support)**: All providers must respect `base_url_override` for proxies and private deployments.
+
+### User Story 4 — Many-to-One & Many-to-Many Prompt Placeholders (Priority: P1)
+
+As a prompt author, I want to reference Many-to-One (Link) and Many-to-Many (Table, Table MultiSelect) fields in prompt templates so the LLM receives complete relational context.
+
+Acceptance Scenarios:
+1. Given a Many-to-One Link field (e.g. customer), When prompt is rendered, Then the foreign document key/ID is injected directly.
+2. Given a Many-to-Many Table or Table MultiSelect field (e.g. roles, user_group_members), When prompt is rendered, Then the list of row dictionaries is cleanly serialized as standard JSON.
+3. Given a prompt with {{doc.fieldname}} or {{fieldname}}, When evaluated, Then doc. prefix is normalized and missing fields are handled gracefully without runtime exceptions.
+
+---
+
+## 6. Test Suite & Verification Matrix
+
+The codebase includes an automated unit test suite executed via bench run-tests --app zutto_ai_fields:
+- TestZuttoAIProvider (5 tests):
+  - Default values, active flag enforcement.
+  - Single-default invariant (updating one active default unsets all others).
+  - API key Bearer prefix and whitespace stripping.
+  - 1024-character password field storage (TEXT storage without truncation).
+- TestAIFieldConfig (5 tests):
+  - Composite autoname format:{target_doctype}-{target_field}.
+  - Comprehensive field type permissibility test across 15 standard field types (Data, Small Text, Text Editor, Select, Check, Date, Datetime, Time, Int, Float, Currency, Link, Dynamic Link, Table, Table MultiSelect, Code).
+  - Prohibited field type rejection test (Section Break, Column Break, Tab Break, Attach Image).
+  - Non-existent field validation.
+  - Placeholder help HTML and preview rendering.
+- TestServicesAndAPI (8 tests):
+  - build_prompt, extract_placeholders, validate_placeholders.
+  - Default endpoints for Qwen (Token Plan) and MiMo (Token Plan).
+  - Custom / Ollama Bearer and URL normalization.
+  - Provider resolution precedence (override vs default).
+  - API RPC tests (get_ai_field_configs, generate_content, test_provider_connection).

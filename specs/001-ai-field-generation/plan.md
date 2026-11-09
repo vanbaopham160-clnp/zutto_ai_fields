@@ -141,3 +141,22 @@ All other standard and custom Frappe field types are fully valid.
    - Attach button to child table grid headers (`.grid-heading-row` or table label).
 3. **Desk Testing**:
    - Test scalar fields, Link fields, Date fields, and Child Table JSON generation.
+
+
+---
+
+## 6. Prompt Service & Placeholder Resolution Architecture
+
+- **Scalar & Relational Fields**: Standard values are extracted from `frm.doc` and cast to string.
+- **Many-to-One (`Link`, `Dynamic Link`)**: Injects foreign document identifier (e.g. `CUST-0001`). Linked attributes accessed via standard DocType Fetch From fields.
+- **Many-to-Many (`Table`, `Table MultiSelect`)**: Collections are serialized as valid JSON arrays (`json.dumps(value, default=str)`) so LLMs can cleanly parse and reason across child rows.
+- **Syntax Compatibility**: Supports both `{{field_name}}` and `{{doc.field_name}}` formats, with order-preserving placeholder extraction.
+
+---
+
+## 7. Automated Test Architecture
+
+Unit tests run natively via Frappe Test Runner (`bench run-tests --app zutto_ai_fields`):
+- `zutto_ai_fields/zutto_ai_fields/doctype/zutto_ai_provider/test_zutto_ai_provider.py`: Invariants, key encryption, Bearer cleaning, 1024-char keys.
+- `zutto_ai_fields/zutto_ai_fields/doctype/ai_field_config/test_ai_field_config.py`: Autoname, 15 allowed field types, 4 disallowed layout/attachment types.
+- `zutto_ai_fields/tests/test_services.py`: Prompt builder, Token Plan auto-endpoints, Custom Provider headers/URLs, Provider resolution precedence, RPC endpoints.

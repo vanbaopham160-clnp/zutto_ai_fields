@@ -67,3 +67,7 @@
 - [x] T050 [US1] Verify single-default invariant on `Zutto AI Provider`.
 - [x] T051 [US1] Verify 1024-character `api_key` storage without truncation.
 - [x] T052 Test child table row generation and date/link assignment on `johan.localhost`.
+
+- [x] T053 [US1] Create automated unit test suite (18 tests) covering providers, field configs, and RPC services -> zutto_ai_fields/tests/test_services.py, doctype/zutto_ai_provider/test_zutto_ai_provider.py, doctype/ai_field_config/test_ai_field_config.py
+- [x] T054 [US2] Create sample AI Field Config records for all 14 field types on johan.localhost for manual Desk verification.
+- [x] T055 [US4] Implement JSON array serialization for collections (Child Tables and Table MultiSelect) in prompt placeholder builder -> services/prompt_service.py
