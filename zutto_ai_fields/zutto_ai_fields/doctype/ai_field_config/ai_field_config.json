@@ -5,7 +5,7 @@
  "allow_guest": 0,
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "field:target_doctype",
+ "autoname": "format:{target_doctype}-{target_field}",
  "beta": 0,
  "creation": "2024-01-01 00:00:00.000000",
  "custom": 0,
@@ -89,9 +89,9 @@
   {
    "depends_on": "eval:doc.override_provider",
    "fieldname": "provider",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Provider",
-   "options": "openai\ngemini\nollama"
+   "options": "Zutto AI Provider"
   },
   {
    "depends_on": "eval:doc.override_provider",
@@ -128,7 +128,7 @@
  "module": "Zutto AI Fields",
  "name": "AI Field Config",
  "name_case": "",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

@@ -1,0 +1,164 @@
+{
+ "actions": [],
+ "allow_copy": 1,
+ "allow_email": 1,
+ "allow_guest": 0,
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:provider_name",
+ "beta": 0,
+ "creation": "2026-11-09 14:00:00.000000",
+ "custom": 0,
+ "docstatus": 0,
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "provider_name",
+  "provider",
+  "api_key",
+  "base_url_override",
+  "column_break_col2",
+  "suggested_models",
+  "default_chat_model",
+  "default_embedding_model",
+  "default_transcription_model",
+  "default_provider",
+  "active",
+  "section_break_limits",
+  "max_tokens",
+  "request_timeout"
+ ],
+ "fields": [
+  {
+   "fieldname": "provider_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Anthropic (Claude)",
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Provider",
+   "options": "Anthropic (Claude)\nOpenAI (ChatGPT)\nGoogle Gemini\nGLM (Zhipu AI)\nQwen (Token Plan)\nMiMo (Token Plan)\nCustom / Ollama",
+   "reqd": 1
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "API Key",
+   "length": 1024
+  },
+  {
+   "fieldname": "base_url_override",
+   "fieldtype": "Data",
+   "label": "Base URL override",
+   "length": 512,
+   "placeholder": "Leave empty for the provider's default endpoint"
+  },
+  {
+   "fieldname": "column_break_col2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Claude: claude-sonnet-5-5, claude-3-5-sonnet\nOpenAI: gpt-4o, gpt-4o-mini, gpt-5-mini\nGemini: gemini-1.5-flash, gemini-2.0-flash, gemini-3.5-flash\nGLM: glm-4-flash, glm-4.5-flash\nQwen Plan: qwen3.7-max, qwen3.5-plus, qwen-max\nMiMo Plan: mimo-v2.5-pro, mimo-v2-pro",
+   "fieldname": "suggested_models",
+   "fieldtype": "Small Text",
+   "label": "Suggested Models",
+   "read_only": 1
+  },
+  {
+   "default": "claude-sonnet-5-5",
+   "fieldname": "default_chat_model",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Default Chat Model",
+   "reqd": 1
+  },
+  {
+   "fieldname": "default_embedding_model",
+   "fieldtype": "Data",
+   "label": "Default Embedding Model"
+  },
+  {
+   "fieldname": "default_transcription_model",
+   "fieldtype": "Data",
+   "label": "Default Transcription Model"
+  },
+  {
+   "default": "0",
+   "fieldname": "default_provider",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Default Provider"
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Active"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_limits",
+   "fieldtype": "Section Break",
+   "label": "Advanced Settings"
+  },
+  {
+   "default": "1000",
+   "fieldname": "max_tokens",
+   "fieldtype": "Int",
+   "label": "Max Tokens"
+  },
+  {
+   "default": "30",
+   "fieldname": "request_timeout",
+   "fieldtype": "Int",
+   "label": "Request Timeout (seconds)"
+  }
+ ],
+ "grid_page_length": 50,
+ "hide_toolbar": 0,
+ "in_create": 0,
+ "is_published_field": "",
+ "istable": 0,
+ "max_attachments": 0,
+ "modified": "2026-11-09 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Zutto AI Fields",
+ "name": "Zutto AI Provider",
+ "name_case": "",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "read_only": 0,
+ "read_only_depends_on_fields": [],
+ "show_preview_popup": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 0,
+ "track_views": 0
+}

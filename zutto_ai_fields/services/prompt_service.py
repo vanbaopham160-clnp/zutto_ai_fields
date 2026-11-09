@@ -102,3 +102,18 @@ def get_placeholder_suggestions(template: str) -> list[str]:
             suggestions.append(placeholder)
 
     return list(set(suggestions))
+
+def extract_placeholders(template: str) -> list[str]:
+    """Extract placeholder names preserving order without duplicates."""
+    if not template:
+        return []
+    pattern = r"\{\{([^}]+)\}\}"
+    placeholders = re.findall(pattern, template)
+    seen = set()
+    result = []
+    for ph in placeholders:
+        field = ph[4:] if ph.startswith("doc.") else ph
+        if field not in seen:
+            seen.add(field)
+            result.append(field)
+    return result

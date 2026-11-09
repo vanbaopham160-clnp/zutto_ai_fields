@@ -185,29 +185,19 @@ System Prompt: List 3-5 professional interests, comma-separated.
 
 ## Supported Field Types
 
-### ✅ Supported
-- **Data**: Short text fields
-- **Text**: Single-line text
-- **Small Text**: Multi-line text
-- **Long Text**: Extended text fields
-- **Text Editor**: Rich text editor
-- **Code**: Code editor
-- **Markdown Editor**: Markdown editor
-- **HTML Editor**: HTML editor
-- **Select**: Dropdown (generates from allowed options)
-- **Int**: Integer numbers
-- **Float**: Decimal numbers
-- **Currency**: Monetary values
-- **Percent**: Percentage values
+### ✅ Supported Data Fields
+- **Text & Prose**: `Data`, `Text`, `Small Text`, `Long Text`, `Text Editor`, `Code`, `Markdown Editor`, `HTML Editor`
+- **Numeric**: `Int`, `Float`, `Currency`, `Percent` (automatically strips symbols and parses numeric values)
+- **Selection**: `Select`, `Check` (matches valid options or boolean toggles)
+- **Reference / Link**: `Link`, `Dynamic Link` (resolves and assigns target document identifiers)
+- **Dates & Times**: `Date`, `Datetime`, `Time` (normalizes extracted timestamps to standard Frappe format)
+- **Child Tables (`Table`)**: Parses structured JSON array (`[{"col": "val"}, ...]`) or line items, appending rows via `frm.add_child()`
+- **Table MultiSelect**: Parses JSON array of strings or comma-separated tokens and populates child rows
 
-### ❌ Not Supported
-- Link (use standard link field)
-- Dynamic Link
-- Table (child tables)
-- Table MultiSelect
-- Layout fields (Section Break, Column Break, Tab Break)
-- Attachments
-- Dates and Times
+### ❌ Excluded (By Nature)
+- **Layout Breaks**: `Section Break`, `Column Break`, `Tab Break`, `Fold` (visual dividers, contain no data)
+- **Binary Attachments**: `Attach`, `Attach Image`, `Signature` (require binary media file streams)
+- **Static Display**: `Heading`, `HTML` (read-only UI containers)
 
 ## API Reference
 

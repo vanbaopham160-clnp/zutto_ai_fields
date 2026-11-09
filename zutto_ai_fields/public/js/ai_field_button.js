@@ -56,12 +56,97 @@ zutto_ai_fields.AIFieldButton = class AIFieldButton {
             this.generate_content(fieldname, config, $button);
         });
 
-        // Find label and append button
+        // Find label or grid header to append button
+        const $gridHeader = $wrapper.find('.grid-heading-row .grid-header-toolbar, .form-grid label').first();
         const $label = $wrapper.find('label').first();
-        if ($label.length) {
+
+        if ($gridHeader.length) {
+            $gridHeader.append($button);
+        } else if ($label.length) {
             $label.append($button);
         } else {
             $wrapper.prepend($button);
+        }
+    }
+
+    apply_generated_content(fieldname, raw_content) {
+        const field = this.frm.get_field(fieldname);
+        if (!field || !field.df) {
+            this.frm.set_value(fieldname, raw_content);
+            return;
+        }
+
+        const ftype = field.df.fieldtype;
+
+        if (ftype === 'Table') {
+            // Child Table handling
+            let rows = [];
+            const clean = String(raw_content).replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+            try {
+                const parsed = JSON.parse(clean);
+                rows = Array.isArray(parsed) ? parsed : [parsed];
+            } catch (e) {
+                // If not valid JSON, treat each non-empty line as a row
+                const lines = clean.split('\n').map(l => l.replace(/^[-*•\d.]+\s*/, '').trim()).filter(Boolean);
+                const child_meta = frappe.get_meta(field.df.options);
+                const primary_field = child_meta ? child_meta.fields.find(f => ['Data', 'Text', 'Small Text'].includes(f.fieldtype)) : null;
+                const target_col = primary_field ? primary_field.fieldname : 'description';
+                rows = lines.map(line => ({ [target_col]: line }));
+            }
+
+            if (rows.length > 0) {
+                rows.forEach(row_data => {
+                    if (typeof row_data === 'object' && row_data !== null) {
+                        this.frm.add_child(fieldname, row_data);
+                    }
+                });
+                this.frm.refresh_field(fieldname);
+            }
+        } else if (ftype === 'Table MultiSelect') {
+            // Table MultiSelect handling
+            let items = [];
+            const clean = String(raw_content).replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+            try {
+                const parsed = JSON.parse(clean);
+                items = Array.isArray(parsed) ? parsed : [parsed];
+            } catch (e) {
+                items = clean.split(/[\n,]+/).map(s => s.replace(/^[-*•\d.]+\s*/, '').trim()).filter(Boolean);
+            }
+
+            const child_meta = frappe.get_meta(field.df.options);
+            const link_field = child_meta ? child_meta.fields.find(f => f.fieldtype === 'Link') : null;
+            const target_col = link_field ? link_field.fieldname : 'item';
+
+            items.forEach(item => {
+                const val = typeof item === 'object' ? (item[target_col] || Object.values(item)[0]) : item;
+                if (val) {
+                    this.frm.add_child(fieldname, { [target_col]: String(val).trim() });
+                }
+            });
+            this.frm.refresh_field(fieldname);
+        } else if (ftype === 'Date') {
+            const match = String(raw_content).match(/\b\d{4}-\d{2}-\d{2}\b/);
+            this.frm.set_value(fieldname, match ? match[0] : String(raw_content).trim());
+        } else if (ftype === 'Datetime') {
+            const match = String(raw_content).match(/\b\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?\b/);
+            this.frm.set_value(fieldname, match ? match[0].replace('T', ' ') : String(raw_content).trim());
+        } else if (ftype === 'Time') {
+            const match = String(raw_content).match(/\b\d{2}:\d{2}(?::\d{2})?\b/);
+            this.frm.set_value(fieldname, match ? match[0] : String(raw_content).trim());
+        } else if (['Int', 'Float', 'Currency', 'Percent'].includes(ftype)) {
+            const clean_num = String(raw_content).replace(/[^0-9.-]/g, '');
+            const num = ftype === 'Int' ? parseInt(clean_num, 10) : parseFloat(clean_num);
+            this.frm.set_value(fieldname, isNaN(num) ? 0 : num);
+        } else if (ftype === 'Check') {
+            const str = String(raw_content).toLowerCase().trim();
+            const checked = ['1', 'true', 'yes', 'y', 'checked'].includes(str) ? 1 : 0;
+            this.frm.set_value(fieldname, checked);
+        } else if (['Link', 'Dynamic Link', 'Select'].includes(ftype)) {
+            const clean_val = String(raw_content).trim().replace(/^["'`]|["'`]$/g, '').trim();
+            this.frm.set_value(fieldname, clean_val);
+        } else {
+            // Standard Text, Data, Text Editor, Code, etc.
+            this.frm.set_value(fieldname, raw_content);
         }
     }
 
@@ -90,8 +175,8 @@ zutto_ai_fields.AIFieldButton = class AIFieldButton {
                     const result = r.message;
 
                     if (result && result.success) {
-                        // Set the generated content
-                        this.frm.set_value(fieldname, result.content);
+                        // Apply the generated content according to fieldtype
+                        this.apply_generated_content(fieldname, result.content);
 
                         frappe.show_alert({
                             message: `Generated using ${result.provider} (${result.model})`,
@@ -140,8 +225,8 @@ zutto_ai_fields.initialized_forms = {};
 zutto_ai_fields.init_for_form = function(frm) {
     if (!frm || !frm.doctype) return;
 
-    // Skip AI Field Config and Zutto AI Settings
-    if (frm.doctype === 'AI Field Config' || frm.doctype === 'Zutto AI Settings') return;
+    // Skip AI Field Config and Zutto AI Provider
+    if (frm.doctype === 'AI Field Config' || frm.doctype === 'Zutto AI Provider' || frm.doctype === 'Zutto AI Settings') return;
 
     // Create unique key for this form instance
     const form_key = frm.doctype + '-' + (frm.docname || 'new');
@@ -159,13 +244,11 @@ zutto_ai_fields.init_for_form = function(frm) {
 
 // Method 1: Override frappe.ui.form.Form refresh
 $(document).ready(function() {
-    // Patch into form refresh
     if (frappe.ui && frappe.ui.form && frappe.ui.form.Form) {
         const origRefresh = frappe.ui.form.Form.prototype.refresh;
         frappe.ui.form.Form.prototype.refresh = function(docname) {
             const result = origRefresh.apply(this, arguments);
 
-            // Initialize AI buttons after refresh
             setTimeout(() => {
                 if (this.frm) {
                     zutto_ai_fields.init_for_form(this.frm);

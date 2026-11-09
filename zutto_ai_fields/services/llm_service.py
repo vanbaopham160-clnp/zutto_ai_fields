@@ -3,112 +3,115 @@ from frappe import _
 
 from .providers import (
     LLMResponse,
+    AnthropicProvider,
     OpenAIProvider,
-    GeminiProvider
+    GeminiProvider,
+    GLMProvider,
+    CustomProvider
 )
 
-def generate_content(
-    provider: str,
-    config: dict,
+def get_provider_instance(provider_type: str, api_key: str = "", base_url: str = "", model: str = ""):
+    """Instantiate the appropriate LLM provider strategy"""
+    ptype = (provider_type or "").lower()
+
+    config = {}
+    if base_url:
+        config["base_url"] = base_url
+    if model:
+        config["model"] = model
+
+    if "anthropic" in ptype or "claude" in ptype:
+        return AnthropicProvider(api_key=api_key, **config)
+    elif "qwen" in ptype:
+        if "base_url" not in config:
+            config["base_url"] = "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1"
+        if "model" not in config:
+            config["model"] = "qwen3.7-max"
+        return OpenAIProvider(api_key=api_key, **config)
+    elif "mimo" in ptype:
+        if "base_url" not in config:
+            config["base_url"] = "https://token-plan-cn.xiaomimimo.com/v1"
+        if "model" not in config:
+            config["model"] = "mimo-v2.5-pro"
+        return OpenAIProvider(api_key=api_key, **config)
+    elif "openai" in ptype or "chatgpt" in ptype:
+        return OpenAIProvider(api_key=api_key, **config)
+    elif "gemini" in ptype or "google" in ptype:
+        return GeminiProvider(api_key=api_key, **config)
+    elif "glm" in ptype or "zhipu" in ptype:
+        return GLMProvider(api_key=api_key, **config)
+    elif "custom" in ptype or "ollama" in ptype:
+        return CustomProvider(api_key=api_key, **config)
+    else:
+        # Default to OpenAI-compatible provider
+        return OpenAIProvider(api_key=api_key, **config)
+
+def resolve_provider_and_model(config: dict) -> tuple:
+    """
+    Resolve which Zutto AI Provider and model should be used.
+
+    Returns:
+        (provider_doc, resolved_model_string)
+    """
+    if config.get("override_provider") and config.get("provider"):
+        provider_name = config["provider"]
+        if not frappe.db.exists("Zutto AI Provider", provider_name):
+            frappe.throw(_(f"Configured AI Provider '{provider_name}' does not exist."))
+        provider_doc = frappe.get_doc("Zutto AI Provider", provider_name)
+        if not provider_doc.active:
+            frappe.throw(_(f"Selected AI Provider '{provider_name}' is inactive."))
+        model = config.get("model") or provider_doc.default_chat_model
+        return provider_doc, model
+
+    # Otherwise, resolve default active provider
+    defaults = frappe.get_all(
+        "Zutto AI Provider",
+        filters={"default_provider": 1, "active": 1},
+        pluck="name",
+        limit=1
+    )
+    if not defaults:
+        # Fallback to any active provider if none is explicitly marked default
+        active_any = frappe.get_all(
+            "Zutto AI Provider",
+            filters={"active": 1},
+            pluck="name",
+            limit=1
+        )
+        if not active_any:
+            frappe.throw(_("No active AI Provider configured. Please configure an active provider in Zutto AI Provider."))
+        defaults = active_any
+
+    provider_doc = frappe.get_doc("Zutto AI Provider", defaults[0])
+    model = config.get("model") or provider_doc.default_chat_model
+    return provider_doc, model
+
+def execute_generation(
+    provider_doc,
+    model: str,
     prompt: str,
     system_prompt: str = "",
-    max_tokens: int = 1000,
-    timeout: int = 30
+    max_tokens: int = None,
+    timeout: int = None
 ) -> LLMResponse:
-    """
-    Generate content using the specified LLM provider.
+    """Execute generation using a resolved Zutto AI Provider record"""
+    api_key = provider_doc.get_api_key()
+    base_url = provider_doc.base_url_override or ""
+    provider_type = provider_doc.provider
 
-    Args:
-        provider: Provider name (openai, gemini, ollama)
-        config: Provider configuration dictionary
-        prompt: User prompt
-        system_prompt: System prompt/instructions
-        max_tokens: Maximum tokens to generate
-        timeout: Request timeout in seconds
+    tokens = max_tokens or provider_doc.max_tokens or 1000
+    req_timeout = timeout or provider_doc.request_timeout or 30
 
-    Returns:
-        LLMResponse object with success status and content/error
-    """
-    provider = provider.lower()
+    instance = get_provider_instance(
+        provider_type=provider_type,
+        api_key=api_key,
+        base_url=base_url,
+        model=model
+    )
 
-    # Get API key from config and remove it to avoid duplicate argument
-    api_key = config.get("api_key")
-    config_without_key = {k: v for k, v in config.items() if k != "api_key"}
-
-    # Initialize provider
-    try:
-        if provider == "openai":
-            llm_provider = OpenAIProvider(api_key=api_key, **config_without_key)
-        elif provider == "gemini":
-            llm_provider = GeminiProvider(api_key=api_key, **config_without_key)
-        else:
-            return LLMResponse(
-                success=False,
-                error=f"Unsupported provider: {provider}",
-                error_type="invalid_key"
-            )
-
-        # Generate content
-        return llm_provider.generate(
-            prompt=prompt,
-            system_prompt=system_prompt,
-            max_tokens=max_tokens,
-            timeout=timeout
-        )
-
-    except Exception as e:
-        frappe.log_error(
-            title=f"LLM Service Exception: {provider}",
-            message=frappe.get_traceback()
-        )
-        return LLMResponse(
-            success=False,
-            error=f"Provider error: {str(e)}",
-            error_type="api_error"
-        )
-
-def get_available_providers(settings) -> list[dict]:
-    """
-    Get list of available providers with their status.
-
-    Args:
-        settings: Zutto AI Settings document
-
-    Returns:
-        List of provider info dicts
-    """
-    providers = []
-
-    # OpenAI
-    if settings.openai_api_key:
-        providers.append({
-            "name": "openai",
-            "label": "OpenAI",
-            "configured": True,
-            "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
-        })
-    else:
-        providers.append({
-            "name": "openai",
-            "label": "OpenAI",
-            "configured": False,
-            "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
-        })
-
-    # Gemini
-    if settings.gemini_api_key:
-        providers.append({
-            "name": "gemini",
-            "label": "Google Gemini",
-            "configured": True,
-            "models": ["gemini-1.5-flash", "gemini-1.5-pro"]
-        })
-    else:
-        providers.append({
-            "name": "gemini",
-            "label": "Google Gemini",
-            "configured": False,
-            "models": ["gemini-1.5-flash", "gemini-1.5-pro"]
-        })
-
-    return providers
+    return instance.generate(
+        prompt=prompt,
+        system_prompt=system_prompt,
+        max_tokens=tokens,
+        timeout=req_timeout
+    )

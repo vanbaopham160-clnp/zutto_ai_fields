@@ -14,7 +14,10 @@ class BaseLLMProvider(ABC):
 
     def __init__(self, api_key: str = None, **kwargs):
         self.api_key = api_key
-        self.config = kwargs
+        if "config" in kwargs and isinstance(kwargs["config"], dict):
+            self.config = {**kwargs["config"], **{k: v for k, v in kwargs.items() if k != "config"}}
+        else:
+            self.config = kwargs
 
     @abstractmethod
     def generate(

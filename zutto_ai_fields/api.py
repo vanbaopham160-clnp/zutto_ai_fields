@@ -1,9 +1,9 @@
+import json
 import frappe
 from frappe import _
 
-from .services.llm_service import generate_content as llm_generate
-from .services.prompt_service import build_prompt, validate_placeholders
-from .services.providers import LLMResponse
+from .services.llm_service import resolve_provider_and_model, execute_generation
+from .services.prompt_service import build_prompt, validate_placeholders, get_placeholder_suggestions
 
 @frappe.whitelist(allow_guest=False)
 def get_ai_field_configs(doctype: str) -> list[dict]:
@@ -18,7 +18,7 @@ def get_ai_field_configs(doctype: str) -> list[dict]:
                 "target_doctype": doctype,
                 "enabled": 1
             },
-            fields=["name", "target_field", "prompt_template", "system_prompt"]
+            fields=["name", "target_field", "prompt_template", "system_prompt", "override_provider", "provider", "model"]
         )
         return configs
     except Exception:
@@ -30,31 +30,23 @@ def generate_content(config_name: str, doc: str | dict) -> dict:
     Generate AI content for a field.
 
     Args:
-        config_name: AI Field Config name (e.g., "Item-description")
+        config_name: AI Field Config name
         doc: Current document values (for placeholder replacement)
 
     Returns:
         {
             "success": True,
-            "content": "Generated content here...",
-            "provider": "openai",
-            "model": "gpt-4o-mini"
-        }
-        OR
-        {
-            "success": False,
-            "error": "Error message for user",
-            "error_type": "api_error|rate_limit|timeout|invalid_key"
+            "content": "...",
+            "provider": "Claude",
+            "model": "claude-sonnet-5-5"
         }
     """
-    import json
-
     try:
         # Parse doc if it's a JSON string
         if isinstance(doc, str):
             doc = json.loads(doc)
 
-        # Check write permission
+        # Check read permission
         if not frappe.has_permission("AI Field Config", ptype="read"):
             return {
                 "success": False,
@@ -78,62 +70,40 @@ def generate_content(config_name: str, doc: str | dict) -> dict:
                 "error_type": "not_found"
             }
 
-        # Get global settings
-        settings = frappe.get_single("Zutto AI Settings")
-
-        if not settings.enabled:
+        # Resolve provider and model
+        try:
+            provider_doc, model = resolve_provider_and_model(config)
+        except Exception as e:
             return {
                 "success": False,
-                "error": _("AI generation is disabled"),
-                "error_type": "disabled"
+                "error": str(e),
+                "error_type": "config_error"
             }
-
-        # Determine provider and config
-        if config.override_provider and config.provider:
-            provider = config.provider.lower()
-            model = config.model or settings.default_model
-        else:
-            provider = (settings.default_provider or "").lower()
-            model = settings.default_model
-
-        # Get provider configuration
-        provider_config = settings.get_provider_config(provider)
-
-        if not provider_config.get("api_key"):
-            return {
-                "success": False,
-                "error": _(f"{provider.title()} API key not configured"),
-                "error_type": "invalid_key"
-            }
-
-        # Override model if specified in config
-        if model:
-            provider_config["model"] = model
 
         # Build prompt with placeholders
         prompt = build_prompt(config.prompt_template, doc)
 
         # Generate content
-        response = llm_generate(
-            provider=provider,
-            config=provider_config,
+        response = execute_generation(
+            provider_doc=provider_doc,
+            model=model,
             prompt=prompt,
             system_prompt=config.system_prompt or "",
-            max_tokens=settings.max_tokens or 1000,
-            timeout=settings.request_timeout or 30
+            max_tokens=provider_doc.max_tokens or 1000,
+            timeout=provider_doc.request_timeout or 30
         )
 
         if response.success:
             return {
                 "success": True,
                 "content": response.content,
-                "provider": provider,
-                "model": provider_config.get("model")
+                "provider": provider_doc.name,
+                "model": model
             }
         else:
             frappe.log_error(
                 title=f"AI Generation Failed: {config_name}",
-                message=f"Provider: {provider}, Model: {provider_config.get('model')}, Error: {response.error}, Error Type: {response.error_type}"
+                message=f"Provider: {provider_doc.name}, Model: {model}, Error: {response.error}, Error Type: {response.error_type}"
             )
             return {
                 "success": False,
@@ -153,41 +123,34 @@ def generate_content(config_name: str, doc: str | dict) -> dict:
         }
 
 @frappe.whitelist()
-def test_connection(provider: str) -> dict:
+def test_provider_connection(provider_name: str) -> dict:
     """
-    Test connection to a specific LLM provider.
+    Test connection to a specific Zutto AI Provider.
 
     Args:
-        provider: Provider name (openai, gemini, ollama)
-
-    Returns:
-        {"success": True, "message": "Connection successful"}
-        OR
-        {"success": False, "error": "Error message"}
+        provider_name: Name of the Zutto AI Provider document
     """
+    if not frappe.has_permission("Zutto AI Provider", ptype="write"):
+        return {"success": False, "error": _("Insufficient permissions")}
+
     try:
-        settings = frappe.get_single("Zutto AI Settings")
-        config = settings.get_provider_config(provider)
+        if not frappe.db.exists("Zutto AI Provider", provider_name):
+            return {"success": False, "error": _(f"Provider '{provider_name}' not found")}
 
-        if not config.get("api_key"):
-            return {
-                "success": False,
-                "error": f"{provider.title()} API key not configured"
-            }
-
-        # Try a simple generation
-        response = llm_generate(
-            provider=provider,
-            config=config,
-            prompt="Say 'Hello, World!'",
-            max_tokens=50,
-            timeout=10
+        provider_doc = frappe.get_doc("Zutto AI Provider", provider_name)
+        response = execute_generation(
+            provider_doc=provider_doc,
+            model=provider_doc.default_chat_model,
+            prompt="Respond with 'Connection successful!' in 5 words or less.",
+            system_prompt="",
+            max_tokens=30,
+            timeout=provider_doc.request_timeout or 15
         )
 
         if response.success:
             return {
                 "success": True,
-                "message": f"Connection successful! Response: {response.content[:50]}..."
+                "message": f"Connection successful! Response: {response.content.strip()}"
             }
         else:
             return {
@@ -202,17 +165,14 @@ def test_connection(provider: str) -> dict:
         }
 
 @frappe.whitelist()
+def test_connection(provider: str) -> dict:
+    """Backward compatibility alias for test_provider_connection"""
+    return test_provider_connection(provider)
+
+@frappe.whitelist()
 def test_ai_field_config(config_name: str) -> dict:
     """
     Test AI generation for a specific AI Field Config.
-
-    Args:
-        config_name: Name of the AI Field Config document
-
-    Returns:
-        {"success": True, "message": "...", "provider": "...", "model": "..."}
-        OR
-        {"success": False, "error": "..."}
     """
     try:
         config = frappe.get_doc("AI Field Config", config_name)
@@ -223,16 +183,11 @@ def test_ai_field_config(config_name: str) -> dict:
         if not config.prompt_template:
             return {"success": False, "error": "Prompt template is required"}
 
-        # Get placeholders from prompt
-        from zutto_ai_fields.services.prompt_service import get_placeholder_suggestions
         placeholders = get_placeholder_suggestions(config.prompt_template)
-
-        # Create sample doc with placeholder values
         sample_doc = {}
         for placeholder in placeholders:
             sample_doc[placeholder] = f"[Sample {placeholder}]"
 
-        # Try to get real data from target doctype
         if config.target_doctype:
             try:
                 sample_records = frappe.get_all(
@@ -248,9 +203,8 @@ def test_ai_field_config(config_name: str) -> dict:
                         as_dict=True
                     )
             except Exception:
-                pass  # Use placeholder values if can't get real data
+                pass
 
-        # Generate content
         response = generate_content(
             config_name=config_name,
             doc=sample_doc

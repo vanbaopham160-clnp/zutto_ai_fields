@@ -1,5 +1,14 @@
 frappe.ui.form.on('AI Field Config', {
 	refresh: function(frm) {
+		// Filter provider to active Zutto AI Providers
+		frm.set_query('provider', function() {
+			return {
+				filters: {
+					active: 1
+				}
+			};
+		});
+
 		// Update placeholder help when form loads
 		if (frm.doc.prompt_template) {
 			update_placeholder_help(frm);
@@ -45,7 +54,6 @@ function update_placeholder_help(frm) {
 }
 
 function test_generation(frm) {
-	// Check if enabled
 	if (!frm.doc.enabled) {
 		frappe.show_alert({
 			message: __('Please enable this config first.'),
@@ -54,7 +62,6 @@ function test_generation(frm) {
 		return;
 	}
 
-	// Check if prompt template exists
 	if (!frm.doc.prompt_template) {
 		frappe.show_alert({
 			message: __('Please add a prompt template first.'),
@@ -63,7 +70,6 @@ function test_generation(frm) {
 		return;
 	}
 
-	// Check if document is saved
 	if (frm.is_new()) {
 		frappe.show_alert({
 			message: __('Please save the document first.'),
@@ -72,13 +78,11 @@ function test_generation(frm) {
 		return;
 	}
 
-	// Show loading
 	frappe.show_alert({
 		message: __('Testing generation...'),
 		indicator: 'blue'
 	}, 10);
 
-	// Call the test API
 	frappe.call({
 		method: 'zutto_ai_fields.api.test_ai_field_config',
 		args: {
@@ -100,15 +104,9 @@ function test_generation(frm) {
 				frappe.msgprint({
 					title: __('Test Generation Failed'),
 					indicator: 'red',
-					message: result ? result.error : __('Unknown error occurred')
+					message: result ? (result.error || __('Unknown error')) : __('Unknown error')
 				});
 			}
-		},
-		error: function() {
-			frappe.show_alert({
-				message: __('Failed to test generation. Please try again.'),
-				indicator: 'red'
-			}, 5);
 		}
 	});
 }

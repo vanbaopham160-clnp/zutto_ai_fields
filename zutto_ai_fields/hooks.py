@@ -11,16 +11,12 @@ app_include_css = "/assets/zutto_ai_fields/css/ai_field.css"
 
 # DocType-specific JavaScript
 doctype_js = {
-    "Zutto AI Settings": "public/js/zutto_ai_settings.js",
+    "Zutto AI Provider": "public/js/zutto_ai_provider.js",
     "AI Field Config": "public/js/ai_field_config.js"
 }
 
 # DocType permissions
 has_permission = {
-    "Zutto AI Settings": "zutto_ai_fields.permissions.has_settings_permission",
+    "Zutto AI Provider": "zutto_ai_fields.permissions.has_provider_permission",
     "AI Field Config": "zutto_ai_fields.permissions.has_config_permission"
 }
-
-# Desk notifications
-
-# notification_config = "zutto_ai_fields.notifications.get_config"
