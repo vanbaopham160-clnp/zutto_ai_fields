@@ -30,9 +30,12 @@ def build_prompt(template: str, doc: dict) -> str:
         # Get value from doc
         value = doc.get(field_name, "")
 
-        # Convert to string and handle None
+        # Convert to string and handle None / collections
         if value is None:
             value = ""
+        elif isinstance(value, (list, dict)):
+            import json
+            value = json.dumps(value, default=str)
         elif not isinstance(value, str):
             value = str(value)
 
