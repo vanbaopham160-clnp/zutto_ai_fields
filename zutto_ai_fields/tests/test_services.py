@@ -26,13 +26,16 @@ class TestServicesAndAPI(FrappeTestCase):
         for name in ["Test-Claude", "Test-OpenAI", "Test-QwenPlan", "Test-MiMoPlan", "Test-Custom"]:
             if frappe.db.exists("Zutto AI Provider", name):
                 frappe.delete_doc("Zutto AI Provider", name, force=1)
+        for cfg in ["User-bio", "ToDo-color"]:
+            if frappe.db.exists("AI Field Config", cfg):
+                frappe.delete_doc("AI Field Config", cfg, force=1)
         frappe.db.commit()
 
     def tearDown(self):
         for name in ["Test-Claude", "Test-OpenAI", "Test-QwenPlan", "Test-MiMoPlan", "Test-Custom"]:
             if frappe.db.exists("Zutto AI Provider", name):
                 frappe.delete_doc("Zutto AI Provider", name, force=1)
-        for cfg in ["User-bio", "ToDo-description_test"]:
+        for cfg in ["User-bio", "ToDo-color"]:
             if frappe.db.exists("AI Field Config", cfg):
                 frappe.delete_doc("AI Field Config", cfg, force=1)
         frappe.db.commit()
